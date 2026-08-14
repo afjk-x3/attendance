@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getEvents, AppEvent } from "@/lib/storage";
+import { getAttendeeCount } from "@/lib/stellar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, Users, ArrowRight, Clock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,21 @@ export function EventList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllActive, setShowAllActive] = useState(false);
   const [showAllPast, setShowAllPast] = useState(false);
+  const [attendeeCounts, setAttendeeCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     // Only runs on the client, avoiding hydration mismatches
-    setEvents(getEvents());
+    const localEvents = getEvents();
+    setEvents(localEvents);
     setNow(Math.floor(Date.now() / 1000));
     setIsLoading(false);
+    
+    // Fetch on-chain attendee counts for all events
+    localEvents.forEach(event => {
+      getAttendeeCount(Number(event.id)).then(count => {
+        setAttendeeCounts(prev => ({ ...prev, [event.id]: count }));
+      });
+    });
     
     // Periodically update current time to move events to past dynamically
     const intervalId = setInterval(() => {
@@ -118,7 +128,9 @@ export function EventList() {
               </div>
               <div className="flex items-center gap-2">
                 <Users className={`w-4 h-4 ${isPast ? 'text-slate-400' : 'text-indigo-400'}`} />
-                <span>Max: {event.maxAttendees}</span>
+                <span>
+                  {attendeeCounts[event.id] !== undefined ? `${attendeeCounts[event.id]} / ${event.maxAttendees} Attendees` : `Max: ${event.maxAttendees}`}
+                </span>
               </div>
             </div>
             <div className="w-full block">
