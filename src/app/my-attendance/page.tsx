@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useWallet } from "@/contexts/WalletContext";
+import { getMyCheckIns, CheckInRecord } from "@/lib/storage";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, MapPin, CheckCircle, ExternalLink } from "lucide-react";
+
+export default function MyAttendance() {
+  const router = useRouter();
+  const { address, connect, isConnecting } = useWallet();
+  const [checkIns, setCheckIns] = useState<CheckInRecord[]>([]);
+
+  useEffect(() => {
+    if (address) {
+      setCheckIns(getMyCheckIns(address));
+    } else {
+      setCheckIns([]);
+    }
+  }, [address]);
+
+  if (!address) {
+    return (
+      <div className="flex flex-col items-center justify-center mt-20 space-y-6 animate-in fade-in duration-500">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold text-slate-900">My Attendance</h2>
+          <p className="text-slate-600">Connect your wallet to view your attendance history.</p>
+        </div>
+        <Button onClick={connect} disabled={isConnecting} className="bg-indigo-600 hover:bg-indigo-700">
+          {isConnecting ? "Connecting..." : "Connect Freighter"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => router.back()} className="text-slate-500 hover:text-slate-700">
+          ← Back
+        </Button>
+      </div>
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-extrabold text-slate-900">My Attendance</h1>
+        <p className="text-slate-600">Your on-chain verified event history.</p>
+      </div>
+
+      {checkIns.length === 0 ? (
+        <Card className="text-center py-12 border-dashed">
+          <CardContent className="space-y-4">
+            <CheckCircle className="w-12 h-12 text-slate-300 mx-auto" />
+            <div className="text-slate-500">
+              You haven't checked into any events yet.
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {checkIns.map((checkin, i) => (
+            <Card key={i} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xl text-indigo-900">{checkin.eventName || `Event ID: ${checkin.eventId}`}</CardTitle>
+                <CardDescription>Checked in on {new Date(checkin.checkedInAt).toLocaleString()}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  {checkin.eventDate && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span>{checkin.eventDate}</span>
+                    </div>
+                  )}
+                  {checkin.eventLocation && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      <span>{checkin.eventLocation}</span>
+                    </div>
+                  )}
+                </div>
+                <a
+                  href={`https://stellar.expert/explorer/testnet/tx/${checkin.txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-2 rounded-md transition-colors"
+                >
+                  View Tx <ExternalLink className="w-4 h-4" />
+                </a>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

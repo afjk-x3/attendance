@@ -1,0 +1,1 @@
+C:\Users\pol\Documents\Projects\mih2\web3\ projects\attendance\contracts\attendance\target\wasm32v1-none\release\attendance.wasm: C:\Users\pol\Documents\Projects\mih2\web3\ projects\attendance\contracts\attendance\src\lib.rs
