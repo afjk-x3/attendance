@@ -79,7 +79,8 @@ export default function CheckIn() {
         if (event.maxAttendees > 0 && count >= event.maxAttendees) {
            throw new Error("This event is at maximum capacity.");
         }
-      } catch (preflightErr: any) {
+      } catch (e: unknown) {
+         const preflightErr = e as Error;
          // If pre-flight check explicitly threw an error, propagate it
          if (preflightErr.message === "You have already checked in to this event!" || preflightErr.message === "This event is at maximum capacity.") {
              throw preflightErr;
@@ -108,7 +109,8 @@ export default function CheckIn() {
 
       toast.success("Successfully checked in!");
       setSuccessTx(hash);
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as Error;
       console.error(err);
       let errorMessage = err.message || "Failed to check in on-chain.";
       

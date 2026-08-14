@@ -33,7 +33,7 @@ export function getEvents(): AppEvent[] {
   if (eventsJson) {
     try {
       return JSON.parse(eventsJson);
-    } catch (e) {
+    } catch {
       return [];
     }
   }
@@ -56,7 +56,7 @@ export function getCheckIns(): CheckInRecord[] {
   if (checkinsJson) {
     try {
       return JSON.parse(checkinsJson);
-    } catch (e) {
+    } catch {
       return [];
     }
   }

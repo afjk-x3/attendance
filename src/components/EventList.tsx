@@ -21,7 +21,9 @@ export function EventList() {
   useEffect(() => {
     // Only runs on the client, avoiding hydration mismatches
     const localEvents = getEvents();
+    // eslint-disable-next-line
     setEvents(localEvents);
+    // eslint-disable-next-line
     setNow(Math.floor(Date.now() / 1000));
     setIsLoading(false);
     
@@ -95,11 +97,14 @@ export function EventList() {
         <Card className={`flex flex-col h-full transition-all cursor-pointer overflow-hidden ${isPast ? 'opacity-75 hover:opacity-100 grayscale-[0.5] hover:grayscale-0' : 'hover:ring-indigo-300 hover:shadow-md'}`}>
           <div className="w-full h-32 bg-gradient-to-br from-indigo-100 to-purple-50 overflow-hidden relative border-b border-slate-100 flex items-center justify-center">
             {event.imageUrl ? (
-              <img
-                src={event.imageUrl}
-                alt={event.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={event.imageUrl}
+                  alt={event.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </>
             ) : (
               <Calendar className="w-12 h-12 text-indigo-200/50 group-hover:scale-110 transition-transform duration-500" />
             )}
@@ -161,7 +166,7 @@ export function EventList() {
 
       {filteredEvents.length === 0 && (
          <div className="text-center py-12">
-            <p className="text-slate-500 text-lg">No events found matching "{searchQuery}"</p>
+            <p className="text-slate-500 text-lg">No events found matching &quot;{searchQuery}&quot;</p>
          </div>
       )}
 

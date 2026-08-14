@@ -39,7 +39,7 @@ export default function Home() {
               <CheckCircle className="text-indigo-600" /> My Attendance
             </CardTitle>
             <CardDescription>
-              View the history of all the events you've checked into on-chain.
+              View the history of all the events you&apos;ve checked into on-chain.
             </CardDescription>
           </CardHeader>
           <CardContent>

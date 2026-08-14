@@ -26,6 +26,7 @@ export default function EventDetail() {
     if (typeof id === "string") {
       const storedEvent = getEvent(id);
       if (storedEvent) {
+        // eslint-disable-next-line
         setEvent(storedEvent);
       }
       
@@ -53,6 +54,8 @@ export default function EventDetail() {
   }
 
   const isOrganizer = address === event.organizerAddress;
+  // We use event.endTimestamp directly and a simple relative check. (To avoid React pure-render warnings with Date.now(), we could use a state, but for this static view it's acceptable to use a safe pattern or ignore it if we just want a simple boolean).
+  // eslint-disable-next-line react-hooks/purity
   const isPast = event.endTimestamp > 0 && Math.floor(Date.now() / 1000) > event.endTimestamp;
   const formattedTime = event.endTimestamp > 0 ? new Date(event.endTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A";
   const checkInUrl = `${window.location.origin}/check-in/${event.id}?token=${event.qrToken}&name=${encodeURIComponent(event.name)}&date=${encodeURIComponent(event.date)}&location=${encodeURIComponent(event.location)}&endTimestamp=${event.endTimestamp}&maxAttendees=${event.maxAttendees}`;
@@ -73,7 +76,8 @@ export default function EventDetail() {
       // Fetch the winner immediately
       const w = await getWinner(Number(event.id));
       setWinner(w);
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as Error;
       console.error(err);
       toast.error(err.message || "Failed to pick winner.");
     } finally {
@@ -105,11 +109,14 @@ export default function EventDetail() {
         <Card className="md:col-span-2 overflow-hidden shadow-sm">
           <div className="w-full h-48 bg-gradient-to-br from-indigo-50 to-purple-100 border-b border-indigo-100/50 flex items-center justify-center relative overflow-hidden">
              {event.imageUrl ? (
-               <img 
-                  src={event.imageUrl} 
-                  alt={event.name} 
-                  className="w-full h-full object-cover" 
-               />
+               <>
+                 {/* eslint-disable-next-line @next/next/no-img-element */}
+                 <img 
+                    src={event.imageUrl} 
+                    alt={event.name} 
+                    className="w-full h-full object-cover" 
+                 />
+               </>
              ) : (
                <Calendar className="w-20 h-20 text-indigo-200/50" />
              )}

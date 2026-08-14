@@ -17,6 +17,7 @@ export default function MyAttendance() {
 
   useEffect(() => {
     if (address) {
+      // eslint-disable-next-line
       setCheckIns(getMyCheckIns(address));
       getUserBadges(address).then(badges => setOnChainBadges(badges));
     } else {
@@ -96,7 +97,7 @@ export default function MyAttendance() {
           <CardContent className="space-y-4">
             <CheckCircle className="w-12 h-12 text-slate-300 mx-auto" />
             <div className="text-slate-500">
-              You haven't checked into any events yet.
+              Check-ins will appear here once you&apos;ve successfully checked into an event on-chain.
             </div>
           </CardContent>
         </Card>

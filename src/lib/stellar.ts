@@ -2,12 +2,11 @@ import {
   rpc,
   TransactionBuilder,
   Networks,
-  Address,
   Contract,
-  xdr,
   scValToNative,
   nativeToScVal,
-  Account,
+  Transaction,
+  FeeBumpTransaction
 } from "@stellar/stellar-sdk";
 import { signTransaction } from "@stellar/freighter-api";
 
@@ -25,7 +24,7 @@ function getContract() {
   }
   try {
     return new Contract(CONTRACT_ID);
-  } catch (e) {
+  } catch {
     throw new Error(`Invalid Contract ID configured: ${CONTRACT_ID}. Please check your environment variables.`);
   }
 }
@@ -37,8 +36,9 @@ async function getTxBuilder(pubKey: string) {
             fee: "1000",
             networkPassphrase: NETWORK_PASSPHRASE,
         });
-    } catch (e: any) {
-        if (e?.response?.status === 404 || (e?.message && e.message.includes("not found"))) {
+    } catch (e: unknown) {
+        const err = e as { response?: { status?: number }, message?: string };
+        if (err?.response?.status === 404 || (err?.message && err.message.includes("not found"))) {
             throw new Error(`Wallet account not found! Your wallet (${pubKey.substring(0,6)}...) needs Testnet XLM to exist on the blockchain. You can fund it instantly by clicking 'Fund with Friendbot' inside the Freighter wallet settings.`);
         }
         throw e;
@@ -110,7 +110,7 @@ export async function getAttendeeCount(eventId: number): Promise<number> {
         }
     }
   } catch(e) {
-      console.error(e);
+      console.error("Error getting attendee count:", e);
   }
   return 0;
 }
@@ -135,7 +135,7 @@ export async function getGlobalAttendees(eventId: number): Promise<string[]> {
         }
     }
   } catch(e) {
-      console.error(e);
+      console.error("Error getting global attendees:", e);
   }
   return [];
 }
@@ -170,7 +170,7 @@ export async function getWinner(eventId: number): Promise<string | null> {
     if (rpc.Api.isSimulationSuccess(simResult) && simResult.result?.retval) {
        return scValToNative(simResult.result.retval) as string;
     }
-  } catch(e) {
+  } catch {
       // Return null if winner not picked yet (the contract panics if no winner)
       return null;
   }
@@ -192,20 +192,21 @@ export async function getUserBadges(attendeePubKey: string): Promise<number[]> {
     const simResult = await server.simulateTransaction(tx);
     if (rpc.Api.isSimulationSuccess(simResult) && simResult.result?.retval) {
        const val = scValToNative(simResult.result.retval);
-       return (val as any[]).map(v => Number(v));
+       return (val as unknown[]).map(v => Number(v));
     }
   } catch(e) {
-      console.error(e);
+      console.error("Error getting user badges:", e);
   }
   return [];
 }
 
-export async function submitTx(preparedTx: any) {
+export async function submitTx(preparedTx: Transaction | FeeBumpTransaction) {
     let response;
     try {
         response = await signTransaction(preparedTx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-    } catch (e: any) {
-        throw new Error(`Wallet error: ${e.message || "Failed to connect to wallet"}`);
+    } catch (e: unknown) {
+        const err = e as Error;
+        throw new Error(`Wallet error: ${err.message || "Failed to connect to wallet"}`);
     }
 
     if (response.error || !response.signedTxXdr) {
@@ -224,9 +225,10 @@ export async function submitTx(preparedTx: any) {
 
     let sendResponse;
     try {
-        sendResponse = await server.sendTransaction(txToSubmit as any);
-    } catch (e: any) {
-        throw new Error(`Network error: Failed to broadcast transaction to Stellar. ${e.message || ""}`);
+        sendResponse = await server.sendTransaction(txToSubmit as Transaction | FeeBumpTransaction);
+    } catch (e: unknown) {
+        const err = e as Error;
+        throw new Error(`Network error: Failed to broadcast transaction to Stellar. ${err.message || ""}`);
     }
     
     if (sendResponse.status === "PENDING") {

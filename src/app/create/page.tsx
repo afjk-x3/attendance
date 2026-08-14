@@ -8,7 +8,7 @@ import { saveEvent } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,7 +109,8 @@ export default function CreateEvent() {
 
       toast.success("Event created successfully!");
       router.push(`/event/${eventId}`);
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as Error;
       console.error(err);
       toast.error(err.message || "Failed to create event. Check console for details.");
     } finally {
@@ -155,6 +156,7 @@ export default function CreateEvent() {
                   
                   {localImageUrl && (
                     <div className="relative h-32 rounded overflow-hidden border border-slate-200 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={localImageUrl} alt="Preview" className="w-full h-full object-cover" />
                       <button 
                         type="button" 

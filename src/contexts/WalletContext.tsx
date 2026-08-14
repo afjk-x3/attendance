@@ -22,6 +22,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if previously connected
     const stored = localStorage.getItem("connected_address");
+    // eslint-disable-next-line
     if (stored) setAddress(stored);
   }, []);
 
