@@ -3,12 +3,13 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { Header } from "@/components/Header";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Proof of Attendance",
-  description: "Decentralized event attendance on Stellar",
+  title: "Soroban Attendance",
+  description: "Web3 Proof of Attendance on Stellar",
 };
 
 export default function RootLayout({
@@ -18,13 +19,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900`}>
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col`}>
         <WalletProvider>
           <Header />
-          <main className="container mx-auto px-4 py-8 max-w-2xl">
+          <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
             {children}
           </main>
         </WalletProvider>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

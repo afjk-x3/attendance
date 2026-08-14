@@ -18,19 +18,34 @@ const RPC_URL = IS_MAINNET ? "https://mainnet.sorobanrpc.com" : "https://soroban
 
 const server = new rpc.Server(RPC_URL);
 
+// Helper to get a properly configured Contract instance
+function getContract() {
+  if (!CONTRACT_ID) {
+    throw new Error("Stellar Contract ID is not configured in the application environment variables.");
+  }
+  try {
+    return new Contract(CONTRACT_ID);
+  } catch (e) {
+    throw new Error(`Invalid Contract ID configured: ${CONTRACT_ID}. Please check your environment variables.`);
+  }
+}
+
+async function getTxBuilder(pubKey: string) {
+    const account = await server.getAccount(pubKey);
+    return new TransactionBuilder(account, {
+        fee: "1000",
+        networkPassphrase: NETWORK_PASSPHRASE,
+    });
+}
+
 export async function createEventTx(
   organizerPubKey: string,
   eventId: number,
   maxAttendees: number,
   endTimestamp: number
 ) {
-  const account = await server.getAccount(organizerPubKey);
-  const contract = new Contract(CONTRACT_ID);
-
-  const txBuilder = new TransactionBuilder(account, {
-    fee: "1000",
-    networkPassphrase: NETWORK_PASSPHRASE,
-  });
+  const contract = getContract();
+  const txBuilder = await getTxBuilder(organizerPubKey);
 
   const tx = txBuilder
     .addOperation(
@@ -52,13 +67,8 @@ export async function checkInTx(
   attendeePubKey: string,
   eventId: number
 ) {
-  const account = await server.getAccount(attendeePubKey);
-  const contract = new Contract(CONTRACT_ID);
-
-  const txBuilder = new TransactionBuilder(account, {
-    fee: "1000",
-    networkPassphrase: NETWORK_PASSPHRASE,
-  });
+  const contract = getContract();
+  const txBuilder = await getTxBuilder(attendeePubKey);
 
   const tx = txBuilder
     .addOperation(
@@ -75,22 +85,17 @@ export async function checkInTx(
 }
 
 export async function getAttendeeCount(eventId: number): Promise<number> {
-  const contract = new Contract(CONTRACT_ID);
-  
-  // We can simulate a transaction to read state without submitting
-  const txBuilder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), {
-    fee: "1000",
-    networkPassphrase: NETWORK_PASSPHRASE,
-  });
-  
-  const tx = txBuilder
-    .addOperation(
-      contract.call("get_attendee_count", nativeToScVal(eventId, { type: "u64" }))
-    )
-    .setTimeout(30)
-    .build();
-    
   try {
+    const contract = getContract();
+    const txBuilder = await getTxBuilder("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF");
+  
+    const tx = txBuilder
+      .addOperation(
+        contract.call("get_attendee_count", nativeToScVal(eventId, { type: "u64" }))
+      )
+      .setTimeout(30)
+      .build();
+      
     const simResult = await server.simulateTransaction(tx);
     if (rpc.Api.isSimulationSuccess(simResult)) {
         if(simResult.result?.retval) {
@@ -104,12 +109,33 @@ export async function getAttendeeCount(eventId: number): Promise<number> {
 }
 
 export async function submitTx(preparedTx: any) {
-    const response = await signTransaction(preparedTx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-    if (response.error || !response.signedTxXdr) {
-        throw new Error(response.error?.toString() || "Failed to sign transaction");
+    let response;
+    try {
+        response = await signTransaction(preparedTx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
+    } catch (e: any) {
+        throw new Error(`Wallet error: ${e.message || "Failed to connect to wallet"}`);
     }
-    const txToSubmit = TransactionBuilder.fromXDR(response.signedTxXdr, NETWORK_PASSPHRASE);
-    const sendResponse = await server.sendTransaction(txToSubmit as any);
+
+    if (response.error || !response.signedTxXdr) {
+        if (response.error && response.error.includes("User declined")) {
+             throw new Error("Transaction was rejected in your wallet.");
+        }
+        throw new Error(response.error?.toString() || "Failed to sign transaction. Please try again.");
+    }
+    
+    let txToSubmit;
+    try {
+        txToSubmit = TransactionBuilder.fromXDR(response.signedTxXdr, NETWORK_PASSPHRASE);
+    } catch (e) {
+        throw new Error("Failed to parse signed transaction. Please try again.");
+    }
+
+    let sendResponse;
+    try {
+        sendResponse = await server.sendTransaction(txToSubmit as any);
+    } catch (e: any) {
+        throw new Error(`Network error: Failed to broadcast transaction to Stellar. ${e.message || ""}`);
+    }
     
     if (sendResponse.status === "PENDING") {
         let txResponse = await server.getTransaction(sendResponse.hash);
@@ -121,9 +147,12 @@ export async function submitTx(preparedTx: any) {
         }
         if (txResponse.status === "SUCCESS") {
             return sendResponse.hash;
-        } else {
-            throw new Error(`Transaction failed: ${JSON.stringify(txResponse)}`);
         }
+        if (txResponse.status === "FAILED") {
+            throw new Error(`Smart Contract Error: Transaction failed on-chain. This might mean the event is full or already ended.`);
+        }
+        throw new Error(`Transaction timed out or failed with status: ${txResponse.status}`);
     }
-    throw new Error(`Failed to send tx: ${JSON.stringify(sendResponse)}`);
+    
+    throw new Error(`Failed to submit transaction: ${sendResponse.status}`);
 }

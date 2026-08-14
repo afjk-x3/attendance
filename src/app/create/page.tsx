@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CreateEvent() {
   const router = useRouter();
   const { address } = useWallet();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const [localImageUrl, setLocalImageUrl] = useState<string | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,15 +59,20 @@ export default function CreateEvent() {
     reader.readAsDataURL(file);
   };
 
+  const removeImage = () => {
+    setLocalImageUrl(null);
+    const fileInput = document.getElementById("imageFile") as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!address) {
-      setError("Please connect your wallet first.");
+      toast.error("Please connect your wallet first.");
       return;
     }
 
     setIsSubmitting(true);
-    setError("");
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
@@ -102,10 +107,11 @@ export default function CreateEvent() {
         imageUrl: finalImageUrl,
       });
 
+      toast.success("Event created successfully!");
       router.push(`/event/${eventId}`);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to create event on-chain.");
+      toast.error(err.message || "Failed to create event. Check console for details.");
     } finally {
       setIsSubmitting(false);
     }
@@ -118,20 +124,14 @@ export default function CreateEvent() {
           ← Back
         </Button>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Event</CardTitle>
-          <CardDescription>
-            Deploy your event to the Soroban smart contract. Note: local browser storage is used for event details.
-          </CardDescription>
-        </CardHeader>
+      <div className="text-center space-y-2 mb-6">
+        <h1 className="text-3xl font-extrabold text-slate-900">Create New Event</h1>
+        <p className="text-slate-600">Deploy your event to the Soroban smart contract. Note: local browser storage is used for event details.</p>
+      </div>
+
+      <Card className="shadow-md border-slate-200">
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
-                {error}
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="name">Event Name</Label>
               <Input id="name" name="name" required placeholder="Web3 Meetup" />
@@ -154,8 +154,16 @@ export default function CreateEvent() {
                   </div>
                   
                   {localImageUrl && (
-                    <div className="h-32 rounded overflow-hidden border border-slate-200">
+                    <div className="relative h-32 rounded overflow-hidden border border-slate-200 group">
                       <img src={localImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        type="button" 
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 bg-white/90 hover:bg-white text-red-500 rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove Image"
+                      >
+                         <X className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
 

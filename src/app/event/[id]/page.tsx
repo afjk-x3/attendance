@@ -7,8 +7,9 @@ import { getEvent, getCheckIns, AppEvent, CheckInRecord } from "@/lib/storage";
 import { getAttendeeCount } from "@/lib/stellar";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Copy, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, Users, Copy, CheckCircle2, Share2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -41,6 +42,11 @@ export default function EventDetail() {
     }
   }, [id]);
 
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Event link copied to clipboard!");
+  };
+
   if (!event) {
     return (
       <div className="flex justify-center mt-20">
@@ -50,6 +56,8 @@ export default function EventDetail() {
   }
 
   const isOrganizer = address === event.organizerAddress;
+  const isPast = event.endTimestamp > 0 && Math.floor(Date.now() / 1000) > event.endTimestamp;
+  const formattedTime = event.endTimestamp > 0 ? new Date(event.endTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A";
   const checkInUrl = `${window.location.origin}/check-in/${event.id}?token=${event.qrToken}&name=${encodeURIComponent(event.name)}&date=${encodeURIComponent(event.date)}&location=${encodeURIComponent(event.location)}&endTimestamp=${event.endTimestamp}`;
 
   const copyUrl = () => {
@@ -59,29 +67,42 @@ export default function EventDetail() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="mb-4">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" onClick={() => router.back()} className="text-slate-500 hover:text-slate-700">
           ← Back
         </Button>
+        <Button variant="outline" size="sm" onClick={handleShare} className="text-slate-600 hover:text-indigo-600">
+          <Share2 className="w-4 h-4 mr-2" />
+          Share Event
+        </Button>
       </div>
 
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-extrabold text-slate-900">{event.name}</h1>
+      <div className="text-center space-y-3">
+        <h1 className="text-4xl font-extrabold text-slate-900 flex items-center justify-center gap-3">
+          {event.name}
+          {isPast ? (
+            <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-full text-sm font-bold shadow-sm">Ended</span>
+          ) : (
+            <span className="bg-green-50 text-green-600 border border-green-200 px-3 py-1 rounded-full text-sm font-bold shadow-sm">Active</span>
+          )}
+        </h1>
         <p className="text-lg text-slate-600">{event.description}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 overflow-hidden">
-          {event.imageUrl && (
-            <div className="w-full h-48 bg-slate-100 border-b border-slate-100">
+        <Card className="md:col-span-2 overflow-hidden shadow-sm">
+          <div className="w-full h-48 bg-gradient-to-br from-indigo-50 to-purple-100 border-b border-indigo-100/50 flex items-center justify-center relative overflow-hidden">
+             {event.imageUrl ? (
                <img 
                   src={event.imageUrl} 
                   alt={event.name} 
                   className="w-full h-full object-cover" 
                />
-            </div>
-          )}
+             ) : (
+               <Calendar className="w-20 h-20 text-indigo-200/50" />
+             )}
+          </div>
           <CardHeader>
             <CardTitle>Event Details</CardTitle>
           </CardHeader>
@@ -89,6 +110,10 @@ export default function EventDetail() {
             <div className="flex items-center gap-3 text-slate-700">
               <Calendar className="text-indigo-600 w-5 h-5" />
               <span>{event.date}</span>
+            </div>
+            <div className="flex items-center gap-3 text-slate-700">
+              <Clock className="text-indigo-600 w-5 h-5" />
+              <span>Ends at {formattedTime}</span>
             </div>
             <div className="flex items-center gap-3 text-slate-700">
               <MapPin className="text-indigo-600 w-5 h-5" />
@@ -103,16 +128,21 @@ export default function EventDetail() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col items-center text-center justify-center border-indigo-100 bg-indigo-50/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Check-in QR Code</CardTitle>
-            <CardDescription>Attendees scan this to check in.</CardDescription>
+        <Card className={`flex flex-col items-center justify-center border-indigo-100 ${isPast ? 'bg-slate-50 grayscale' : 'bg-indigo-50/50'}`}>
+          <CardHeader className="flex flex-col items-center text-center px-2 space-y-1.5 w-full">
+            <CardTitle className="text-xl font-bold whitespace-nowrap text-center">Check-in QR Code</CardTitle>
+            <CardDescription className="text-center w-full">{isPast ? "Check-in is closed." : "Attendees scan this to check in."}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100">
+          <CardContent className="flex flex-col items-center gap-4 w-full px-4 pb-6">
+            <div className={`bg-white p-2 rounded-xl shadow-sm border border-slate-100 relative ${isPast ? 'opacity-50' : ''}`}>
               <QRCodeSVG value={checkInUrl} size={150} />
+              {isPast && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[1px] rounded-xl">
+                   <span className="text-red-600 font-bold rotate-12 text-lg border-2 border-red-600 px-2 py-1 rounded">CLOSED</span>
+                </div>
+              )}
             </div>
-            <Button variant="outline" size="sm" onClick={copyUrl} className="w-full">
+            <Button variant="outline" size="sm" onClick={copyUrl} className="w-full" disabled={isPast}>
               {copied ? <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" /> : <Copy className="w-4 h-4 mr-2" />}
               {copied ? "Copied URL!" : "Copy Check-in URL"}
             </Button>

@@ -6,7 +6,7 @@ import { useWallet } from "@/contexts/WalletContext";
 import { getMyCheckIns, CheckInRecord } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, CheckCircle, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, CheckCircle, ExternalLink, Hash, Award } from "lucide-react";
 
 export default function MyAttendance() {
   const router = useRouter();
@@ -46,6 +46,35 @@ export default function MyAttendance() {
         <h1 className="text-3xl font-extrabold text-slate-900">My Attendance</h1>
         <p className="text-slate-600">Your on-chain verified event history.</p>
       </div>
+
+      {checkIns.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100 shadow-sm">
+            <CardContent className="p-6 flex items-center space-x-4">
+              <div className="p-3 bg-indigo-100 rounded-full">
+                <Hash className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Total Events</p>
+                <h3 className="text-2xl font-bold text-slate-900">{checkIns.length}</h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100 shadow-sm">
+            <CardContent className="p-6 flex items-center space-x-4">
+              <div className="p-3 bg-indigo-100 rounded-full">
+                <Award className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">First Attended</p>
+                <h3 className="text-lg font-bold text-slate-900 truncate">
+                  {new Date(Math.min(...checkIns.map(c => c.checkedInAt))).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                </h3>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {checkIns.length === 0 ? (
         <Card className="text-center py-12 border-dashed">

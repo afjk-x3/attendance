@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function CheckIn() {
   const { id } = useParams();
@@ -53,18 +54,17 @@ export default function CheckIn() {
     if (!event) return;
 
     if (event.qrToken !== token) {
-      setError("Invalid QR token.");
+      toast.error("Invalid QR token.");
       return;
     }
     
     // Client side time validation
     if (event.endTimestamp > 0 && Math.floor(Date.now() / 1000) > event.endTimestamp) {
-        setError("This event has already ended.");
+        toast.error("This event has already ended.");
         return;
     }
 
     setIsSubmitting(true);
-    setError("");
     
     try {
       const preparedTx = await checkInTx(address, Number(event.id));
@@ -80,10 +80,11 @@ export default function CheckIn() {
         txHash: hash,
       });
 
+      toast.success("Successfully checked in!");
       setSuccessTx(hash);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to check in on-chain.");
+      toast.error(err.message || "Failed to check in on-chain.");
     } finally {
       setIsSubmitting(false);
     }
