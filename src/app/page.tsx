@@ -9,10 +9,10 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-[70vh] gap-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-4 max-w-lg">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">
-          Decentralized <span className="text-indigo-600">Proof of Attendance</span>
+          Was<span className="text-indigo-600">There</span>
         </h1>
-        <p className="text-lg text-slate-600">
-          Create events, scan QR codes, and issue on-chain attendance records powered by Soroban on the Stellar network. No backend required.
+        <p className="text-lg text-slate-600 font-medium">
+          Proof you showed up. <span className="block mt-2 text-base font-normal text-slate-500">Create events, scan QR codes, and issue permanent, verifiable attendance records on the Stellar blockchain.</span>
         </p>
       </div>
 

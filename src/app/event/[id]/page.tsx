@@ -7,7 +7,7 @@ import { getEvent, AppEvent } from "@/lib/storage";
 import { getAttendeeCount, getGlobalAttendees } from "@/lib/stellar";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Copy, CheckCircle2, Share2, Clock } from "lucide-react";
+import { Calendar, MapPin, Users, Copy, CheckCircle2, Clock, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -41,11 +41,6 @@ export default function EventDetail() {
     }
   }, [id]);
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success("Event link copied to clipboard!");
-  };
-
   if (!event) {
     return (
       <div className="flex justify-center mt-20">
@@ -70,10 +65,6 @@ export default function EventDetail() {
       <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" onClick={() => router.back()} className="text-slate-500 hover:text-slate-700">
           ← Back
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleShare} className="text-slate-600 hover:text-indigo-600">
-          <Share2 className="w-4 h-4 mr-2" />
-          Share Event
         </Button>
       </div>
 
@@ -106,6 +97,14 @@ export default function EventDetail() {
             <CardTitle>Event Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {event.organizerAddress && (
+              <div className="flex items-center gap-3 text-slate-700" title="Event Creator">
+                <UserCircle className="text-indigo-600 w-5 h-5" />
+                <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded">
+                  Creator: {event.organizerAddress.substring(0, 6)}...{event.organizerAddress.substring(event.organizerAddress.length - 4)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-3 text-slate-700">
               <Calendar className="text-indigo-600 w-5 h-5" />
               <span>{event.date}</span>

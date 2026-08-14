@@ -92,7 +92,7 @@ export function EventList() {
 
     return (
       <Link href={`/event/${event.id}`} key={event.id} className="block group outline-none flex flex-col h-full">
-        <Card className={`flex flex-col h-full border-slate-200 transition-all cursor-pointer overflow-hidden ${isPast ? 'opacity-75 hover:opacity-100 grayscale-[0.5] hover:grayscale-0' : 'hover:border-indigo-300 hover:shadow-md'}`}>
+        <Card className={`flex flex-col h-full transition-all cursor-pointer overflow-hidden ${isPast ? 'opacity-75 hover:opacity-100 grayscale-[0.5] hover:grayscale-0' : 'hover:ring-indigo-300 hover:shadow-md'}`}>
           <div className="w-full h-32 bg-gradient-to-br from-indigo-100 to-purple-50 overflow-hidden relative border-b border-slate-100 flex items-center justify-center">
             {event.imageUrl ? (
               <img
@@ -134,7 +134,7 @@ export function EventList() {
               </div>
             </div>
             <div className="w-full block">
-              <Button variant="outline" className={`w-full justify-between transition-colors ${!isPast && 'group-hover:bg-indigo-50 group-hover:border-indigo-200'}`} tabIndex={-1}>
+              <Button variant="outline" className={`w-full justify-between transition-colors ${!isPast && 'group-hover:bg-indigo-50 group-hover:ring-1 group-hover:ring-indigo-200'}`} tabIndex={-1}>
                 {isPast ? 'View Archive' : 'View Details'}
                 <ArrowRight className={`w-4 h-4 transition-transform ${!isPast && 'group-hover:translate-x-1 text-indigo-600'}`} />
               </Button>

@@ -8,8 +8,8 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Soroban Attendance",
-  description: "Web3 Proof of Attendance on Stellar",
+  title: "WasThere",
+  description: "Proof you showed up",
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col`}>
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col overflow-y-scroll`}>
         <WalletProvider>
           <Header />
           <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">

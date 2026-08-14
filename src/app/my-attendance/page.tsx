@@ -88,9 +88,13 @@ export default function MyAttendance() {
       ) : (
         <div className="grid gap-4">
           {checkIns.map((checkin, i) => (
-            <Card key={i} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={i} 
+              className="hover:shadow-md transition-all hover:border-indigo-300 cursor-pointer group"
+              onClick={() => router.push(`/event/${checkin.eventId}`)}
+            >
               <CardHeader className="pb-3">
-                <CardTitle className="text-xl text-indigo-900">{checkin.eventName || `Event ID: ${checkin.eventId}`}</CardTitle>
+                <CardTitle className="text-xl text-indigo-900 group-hover:text-indigo-600 transition-colors">{checkin.eventName || `Event ID: ${checkin.eventId}`}</CardTitle>
                 <CardDescription>Checked in on {new Date(checkin.checkedInAt).toLocaleString()}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -112,6 +116,7 @@ export default function MyAttendance() {
                   href={`https://stellar.expert/explorer/testnet/tx/${checkin.txHash}`}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-2 rounded-md transition-colors"
                 >
                   View Tx <ExternalLink className="w-4 h-4" />

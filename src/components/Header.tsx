@@ -11,7 +11,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-2xl">
         <Link href="/" className="font-bold text-xl tracking-tight text-indigo-600">
-          POA
+          WasThere
         </Link>
         <div className="flex items-center gap-4">
           {address ? (

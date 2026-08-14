@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useWallet } from "@/contexts/WalletContext";
-import { getEvent, saveCheckIn, AppEvent } from "@/lib/storage";
-import { checkInTx, submitTx } from "@/lib/stellar";
+import { getEvent, saveEvent, saveCheckIn, AppEvent } from "@/lib/storage";
+import { checkInTx, submitTx, getGlobalAttendees, getAttendeeCount } from "@/lib/stellar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
@@ -67,6 +67,25 @@ export default function CheckIn() {
     setIsSubmitting(true);
     
     try {
+      // Pre-flight validation checks to give better error messages than raw HostErrors
+      try {
+        const attendees = await getGlobalAttendees(Number(event.id));
+        if (attendees.includes(address)) {
+           throw new Error("You have already checked in to this event!");
+        }
+        
+        const count = await getAttendeeCount(Number(event.id));
+        if (event.maxAttendees > 0 && count >= event.maxAttendees) {
+           throw new Error("This event is at maximum capacity.");
+        }
+      } catch (preflightErr: any) {
+         // If pre-flight check explicitly threw an error, propagate it
+         if (preflightErr.message === "You have already checked in to this event!" || preflightErr.message === "This event is at maximum capacity.") {
+             throw preflightErr;
+         }
+         // Otherwise ignore pre-flight failures and let the main transaction try
+      }
+
       const preparedTx = await checkInTx(address, Number(event.id));
       const hash = await submitTx(preparedTx);
 
@@ -79,12 +98,25 @@ export default function CheckIn() {
         checkedInAt: Date.now(),
         txHash: hash,
       });
+      
+      // If they scanned the QR code on a new device, save the event details so it shows up on their homepage
+      // and so they can view the event details page!
+      if (!getEvent(event.id)) {
+        saveEvent(event);
+      }
 
       toast.success("Successfully checked in!");
       setSuccessTx(hash);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to check in on-chain.");
+      let errorMessage = err.message || "Failed to check in on-chain.";
+      
+      // Parse ugly Soroban VM HostErrors into human words
+      if (errorMessage.includes("HostError") || errorMessage.includes("UnreachableCodeReached") || errorMessage.includes("InvalidAction")) {
+          errorMessage = "Check-in failed. This usually means you've already checked in, the event is full, or this event was created on an older smart contract and doesn't exist anymore.";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -132,9 +164,12 @@ export default function CheckIn() {
                 View Transaction on Stellar Expert
               </a>
           </CardContent>
-          <CardFooter className="justify-center">
-             <Link href="/my-attendance">
-                <Button variant="outline">View My Attendance</Button>
+          <CardFooter className="flex flex-col gap-3 justify-center">
+             <Link href={`/event/${event?.id}`} className="w-full">
+                <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700">View All Attendees</Button>
+             </Link>
+             <Link href="/my-attendance" className="w-full">
+                <Button variant="outline" className="w-full">View My Attendance</Button>
              </Link>
           </CardFooter>
         </Card>

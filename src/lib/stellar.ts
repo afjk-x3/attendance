@@ -31,11 +31,18 @@ function getContract() {
 }
 
 async function getTxBuilder(pubKey: string) {
-    const account = await server.getAccount(pubKey);
-    return new TransactionBuilder(account, {
-        fee: "1000",
-        networkPassphrase: NETWORK_PASSPHRASE,
-    });
+    try {
+        const account = await server.getAccount(pubKey);
+        return new TransactionBuilder(account, {
+            fee: "1000",
+            networkPassphrase: NETWORK_PASSPHRASE,
+        });
+    } catch (e: any) {
+        if (e?.response?.status === 404 || (e?.message && e.message.includes("not found"))) {
+            throw new Error(`Wallet account not found! Your wallet (${pubKey.substring(0,6)}...) needs Testnet XLM to exist on the blockchain. You can fund it instantly by clicking 'Fund with Friendbot' inside the Freighter wallet settings.`);
+        }
+        throw e;
+    }
 }
 
 export async function createEventTx(
