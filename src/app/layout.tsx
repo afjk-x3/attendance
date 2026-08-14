@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "WasThere",
   description: "Proof you showed up",
+  icons: {
+    icon: '/favicon.svg',
+  }
 };
 
 export default function RootLayout({

@@ -16,6 +16,8 @@ pub enum DataKey {
     Event(u64), // Map<event_id, Event>
     CheckIn(u64, Address), // Map<(event_id, attendee), bool>
     EventAttendees(u64), // Map<event_id, Vec<Address>>
+    Winner(u64), // Map<event_id, Address>
+    UserBadges(Address), // Map<attendee, Vec<u64>>
 }
 
 #[contract]
@@ -82,8 +84,14 @@ impl AttendanceContract {
         // Update the attendees list
         let attendees_key = DataKey::EventAttendees(event_id);
         let mut attendees: Vec<Address> = env.storage().instance().get(&attendees_key).unwrap_or(Vec::new(&env));
-        attendees.push_back(attendee);
+        attendees.push_back(attendee.clone());
         env.storage().instance().set(&attendees_key, &attendees);
+
+        // Add POAP badge tracking
+        let badges_key = DataKey::UserBadges(attendee.clone());
+        let mut badges: Vec<u64> = env.storage().instance().get(&badges_key).unwrap_or(Vec::new(&env));
+        badges.push_back(event_id);
+        env.storage().instance().set(&badges_key, &badges);
     }
 
     pub fn has_attended(env: Env, event_id: u64, attendee: Address) -> bool {
@@ -111,6 +119,49 @@ impl AttendanceContract {
 
     pub fn get_attendees(env: Env, event_id: u64) -> Vec<Address> {
         let key = DataKey::EventAttendees(event_id);
+        env.storage().instance().get(&key).unwrap_or(Vec::new(&env))
+    }
+
+    pub fn pick_winner(env: Env, event_id: u64) {
+        let event_key = DataKey::Event(event_id);
+        let event: Event = env
+            .storage()
+            .instance()
+            .get(&event_key)
+            .unwrap_or_else(|| panic!("Event does not exist"));
+
+        event.organizer.require_auth();
+
+        let current_time = env.ledger().timestamp();
+        if current_time <= event.end_timestamp {
+            panic!("Event has not ended yet");
+        }
+
+        let winner_key = DataKey::Winner(event_id);
+        if env.storage().instance().has(&winner_key) {
+            panic!("Winner already picked");
+        }
+
+        let attendees_key = DataKey::EventAttendees(event_id);
+        let attendees: Vec<Address> = env.storage().instance().get(&attendees_key).unwrap_or(Vec::new(&env));
+        if attendees.len() == 0 {
+            panic!("No attendees to pick from");
+        }
+
+        // Pseudo-random selection
+        let random_index = env.prng().gen_range::<u64>(0..attendees.len() as u64) as u32;
+        let winner = attendees.get(random_index).unwrap();
+
+        env.storage().instance().set(&winner_key, &winner);
+    }
+
+    pub fn get_winner(env: Env, event_id: u64) -> Address {
+        let key = DataKey::Winner(event_id);
+        env.storage().instance().get(&key).unwrap_or_else(|| panic!("Winner not picked yet"))
+    }
+
+    pub fn get_user_badges(env: Env, attendee: Address) -> Vec<u64> {
+        let key = DataKey::UserBadges(attendee);
         env.storage().instance().get(&key).unwrap_or(Vec::new(&env))
     }
 }

@@ -20,6 +20,7 @@ export default function CheckIn() {
   const urlDate = searchParams.get("date") || "Unknown Date";
   const urlLocation = searchParams.get("location") || "Unknown Location";
   const urlEndTimestamp = Number(searchParams.get("endTimestamp") || "0");
+  const urlMaxAttendees = Number(searchParams.get("maxAttendees") || "0");
   
   const { address, connect, isConnecting } = useWallet();
   const [event, setEvent] = useState<AppEvent | null>(null);
@@ -41,7 +42,7 @@ export default function CheckIn() {
           location: urlLocation,
           date: urlDate,
           endTimestamp: urlEndTimestamp,
-          maxAttendees: 0,
+          maxAttendees: urlMaxAttendees,
           organizerAddress: "",
           qrToken: token || "",
         });

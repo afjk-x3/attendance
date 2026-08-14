@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/contexts/WalletContext";
 import { getMyCheckIns, CheckInRecord } from "@/lib/storage";
+import { getUserBadges } from "@/lib/stellar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, CheckCircle, ExternalLink, Hash, Award } from "lucide-react";
@@ -12,12 +13,15 @@ export default function MyAttendance() {
   const router = useRouter();
   const { address, connect, isConnecting } = useWallet();
   const [checkIns, setCheckIns] = useState<CheckInRecord[]>([]);
+  const [onChainBadges, setOnChainBadges] = useState<number[]>([]);
 
   useEffect(() => {
     if (address) {
       setCheckIns(getMyCheckIns(address));
+      getUserBadges(address).then(badges => setOnChainBadges(badges));
     } else {
       setCheckIns([]);
+      setOnChainBadges([]);
     }
   }, [address]);
 
@@ -55,8 +59,19 @@ export default function MyAttendance() {
                 <Hash className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">Total Events</p>
+                <p className="text-sm font-medium text-slate-500">Local History</p>
                 <h3 className="text-2xl font-bold text-slate-900">{checkIns.length}</h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100 shadow-sm">
+            <CardContent className="p-6 flex items-center space-x-4">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Award className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">On-Chain POAPs</p>
+                <h3 className="text-2xl font-bold text-slate-900">{onChainBadges.length}</h3>
               </div>
             </CardContent>
           </Card>

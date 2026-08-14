@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWallet } from "@/contexts/WalletContext";
 import { getEvent, AppEvent } from "@/lib/storage";
-import { getAttendeeCount, getGlobalAttendees } from "@/lib/stellar";
+import { getAttendeeCount, getGlobalAttendees, getWinner, pickWinnerTx, submitTx } from "@/lib/stellar";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Users, Copy, CheckCircle2, Clock, UserCircle } from "lucide-react";
+import { Calendar, MapPin, Users, Copy, CheckCircle2, Clock, UserCircle, Gift, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -18,6 +18,8 @@ export default function EventDetail() {
   const [event, setEvent] = useState<AppEvent | null>(null);
   const [attendeeCount, setAttendeeCount] = useState<number>(0);
   const [onChainAttendees, setOnChainAttendees] = useState<string[]>([]);
+  const [winner, setWinner] = useState<string | null>(null);
+  const [isPickingWinner, setIsPickingWinner] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function EventDetail() {
       const fetchCount = () => {
         getAttendeeCount(Number(id)).then(count => setAttendeeCount(count));
         getGlobalAttendees(Number(id)).then(attendees => setOnChainAttendees(attendees));
+        getWinner(Number(id)).then(w => setWinner(w));
       };
       
       // Fetch on-chain attendee count immediately
@@ -52,12 +55,30 @@ export default function EventDetail() {
   const isOrganizer = address === event.organizerAddress;
   const isPast = event.endTimestamp > 0 && Math.floor(Date.now() / 1000) > event.endTimestamp;
   const formattedTime = event.endTimestamp > 0 ? new Date(event.endTimestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A";
-  const checkInUrl = `${window.location.origin}/check-in/${event.id}?token=${event.qrToken}&name=${encodeURIComponent(event.name)}&date=${encodeURIComponent(event.date)}&location=${encodeURIComponent(event.location)}&endTimestamp=${event.endTimestamp}`;
+  const checkInUrl = `${window.location.origin}/check-in/${event.id}?token=${event.qrToken}&name=${encodeURIComponent(event.name)}&date=${encodeURIComponent(event.date)}&location=${encodeURIComponent(event.location)}&endTimestamp=${event.endTimestamp}&maxAttendees=${event.maxAttendees}`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(checkInUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePickWinner = async () => {
+    if (!address || !event) return;
+    setIsPickingWinner(true);
+    try {
+      const preparedTx = await pickWinnerTx(address, Number(event.id));
+      await submitTx(preparedTx);
+      toast.success("Raffle winner picked successfully!");
+      // Fetch the winner immediately
+      const w = await getWinner(Number(event.id));
+      setWinner(w);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to pick winner.");
+    } finally {
+      setIsPickingWinner(false);
+    }
   };
 
   return (
@@ -152,6 +173,45 @@ export default function EventDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {winner && (
+        <Card className="border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-md transform transition-all hover:scale-[1.01]">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl font-bold text-indigo-900 flex items-center justify-center gap-2">
+              <Gift className="text-indigo-600 w-6 h-6" />
+              Raffle Winner!
+              <Gift className="text-indigo-600 w-6 h-6" />
+            </CardTitle>
+            <CardDescription className="text-indigo-700 font-medium">Selected transparently via on-chain randomness.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center pb-6">
+            <div className="inline-block bg-white border-2 border-indigo-200 px-6 py-3 rounded-full text-lg font-mono text-indigo-700 shadow-sm">
+              {winner}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!winner && isOrganizer && isPast && onChainAttendees.length > 0 && (
+        <Card className="border-indigo-100 bg-indigo-50/30">
+          <CardHeader className="pb-3 text-center">
+             <CardTitle className="flex items-center justify-center gap-2 text-indigo-800">
+                <Gift className="w-5 h-5" />
+                Draw Raffle Winner
+             </CardTitle>
+             <CardDescription>The event has ended. Pick a random winner securely on-chain!</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+             <Button onClick={handlePickWinner} disabled={isPickingWinner} size="lg" className="bg-indigo-600 hover:bg-indigo-700 shadow-sm w-full md:w-1/2">
+                {isPickingWinner ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Drawing...</>
+                ) : (
+                  "Pick Random Winner"
+                )}
+             </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-indigo-100 shadow-sm">
         <CardHeader className="bg-indigo-50/50 rounded-t-xl border-b border-indigo-100">

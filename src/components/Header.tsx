@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
+import { Footprints } from "lucide-react";
 
 export function Header() {
   const { address, connect, disconnect, isConnecting } = useWallet();
@@ -10,7 +11,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-2xl">
-        <Link href="/" className="font-bold text-xl tracking-tight text-indigo-600">
+        <Link href="/" className="font-bold text-xl tracking-tight text-indigo-600 flex items-center gap-2">
+          <Footprints className="w-6 h-6" />
           WasThere
         </Link>
         <div className="flex items-center gap-4">

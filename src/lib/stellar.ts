@@ -139,6 +139,67 @@ export async function getGlobalAttendees(eventId: number): Promise<string[]> {
   }
   return [];
 }
+
+export async function pickWinnerTx(organizerPubKey: string, eventId: number) {
+  const contract = getContract();
+  const txBuilder = await getTxBuilder(organizerPubKey);
+
+  const tx = txBuilder
+    .addOperation(
+      contract.call("pick_winner", nativeToScVal(eventId, { type: "u64" }))
+    )
+    .setTimeout(30)
+    .build();
+
+  return await server.prepareTransaction(tx);
+}
+
+export async function getWinner(eventId: number): Promise<string | null> {
+  try {
+    const contract = getContract();
+    const txBuilder = await getTxBuilder("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF");
+  
+    const tx = txBuilder
+      .addOperation(
+        contract.call("get_winner", nativeToScVal(eventId, { type: "u64" }))
+      )
+      .setTimeout(30)
+      .build();
+      
+    const simResult = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(simResult) && simResult.result?.retval) {
+       return scValToNative(simResult.result.retval) as string;
+    }
+  } catch(e) {
+      // Return null if winner not picked yet (the contract panics if no winner)
+      return null;
+  }
+  return null;
+}
+
+export async function getUserBadges(attendeePubKey: string): Promise<number[]> {
+  try {
+    const contract = getContract();
+    const txBuilder = await getTxBuilder("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF");
+  
+    const tx = txBuilder
+      .addOperation(
+        contract.call("get_user_badges", nativeToScVal(attendeePubKey, { type: "address" }))
+      )
+      .setTimeout(30)
+      .build();
+      
+    const simResult = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(simResult) && simResult.result?.retval) {
+       const val = scValToNative(simResult.result.retval);
+       return (val as any[]).map(v => Number(v));
+    }
+  } catch(e) {
+      console.error(e);
+  }
+  return [];
+}
+
 export async function submitTx(preparedTx: any) {
     let response;
     try {

@@ -129,7 +129,9 @@ export function EventList() {
               <div className="flex items-center gap-2">
                 <Users className={`w-4 h-4 ${isPast ? 'text-slate-400' : 'text-indigo-400'}`} />
                 <span>
-                  {attendeeCounts[event.id] !== undefined ? `${attendeeCounts[event.id]} / ${event.maxAttendees} Attendees` : `Max: ${event.maxAttendees}`}
+                  {attendeeCounts[event.id] !== undefined 
+                     ? (event.maxAttendees > 0 ? `${attendeeCounts[event.id]} / ${event.maxAttendees} Attendees` : `${attendeeCounts[event.id]} Attendees`)
+                     : (event.maxAttendees > 0 ? `Max: ${event.maxAttendees}` : "Loading...")}
                 </span>
               </div>
             </div>
