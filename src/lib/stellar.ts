@@ -11,9 +11,10 @@ import {
 } from "@stellar/stellar-sdk";
 import { signTransaction } from "@stellar/freighter-api";
 
-const CONTRACT_ID = "CABY44BSU3JM6E3UENRWCDG5YHHLFP2IPIDH5BV3I436U773W5QOZQBI";
-const NETWORK_PASSPHRASE = Networks.TESTNET;
-const RPC_URL = "https://soroban-testnet.stellar.org";
+const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID || "";
+const IS_MAINNET = process.env.NEXT_PUBLIC_STELLAR_NETWORK === "MAINNET";
+const NETWORK_PASSPHRASE = IS_MAINNET ? Networks.PUBLIC : Networks.TESTNET;
+const RPC_URL = IS_MAINNET ? "https://mainnet.sorobanrpc.com" : "https://soroban-testnet.stellar.org";
 
 const server = new rpc.Server(RPC_URL);
 
