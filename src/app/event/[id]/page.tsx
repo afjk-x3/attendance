@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWallet } from "@/contexts/WalletContext";
-import { getEvent, getCheckIns, AppEvent, CheckInRecord } from "@/lib/storage";
-import { getAttendeeCount } from "@/lib/stellar";
+import { getEvent, AppEvent } from "@/lib/storage";
+import { getAttendeeCount, getGlobalAttendees } from "@/lib/stellar";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, Users, Copy, CheckCircle2, Share2, Clock } from "lucide-react";
@@ -17,7 +17,7 @@ export default function EventDetail() {
   const { address } = useWallet();
   const [event, setEvent] = useState<AppEvent | null>(null);
   const [attendeeCount, setAttendeeCount] = useState<number>(0);
-  const [checkIns, setCheckIns] = useState<CheckInRecord[]>([]);
+  const [onChainAttendees, setOnChainAttendees] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -25,12 +25,11 @@ export default function EventDetail() {
       const storedEvent = getEvent(id);
       if (storedEvent) {
         setEvent(storedEvent);
-        const allCheckIns = getCheckIns();
-        setCheckIns(allCheckIns.filter(c => c.eventId === id));
       }
       
       const fetchCount = () => {
         getAttendeeCount(Number(id)).then(count => setAttendeeCount(count));
+        getGlobalAttendees(Number(id)).then(attendees => setOnChainAttendees(attendees));
       };
       
       // Fetch on-chain attendee count immediately
@@ -155,28 +154,33 @@ export default function EventDetail() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Local Check-ins</CardTitle>
-          <CardDescription>Attendees who checked in on this device.</CardDescription>
+      <Card className="border-indigo-100 shadow-sm">
+        <CardHeader className="bg-indigo-50/50 rounded-t-xl border-b border-indigo-100">
+          <CardTitle>Global On-Chain Check-ins</CardTitle>
+          <CardDescription>All attendees verified on the Stellar blockchain globally.</CardDescription>
         </CardHeader>
-        <CardContent>
-          {checkIns.length === 0 ? (
-            <p className="text-sm text-slate-500 italic">No local check-ins recorded yet.</p>
+        <CardContent className="pt-6">
+          {onChainAttendees.length === 0 ? (
+            <p className="text-sm text-slate-500 italic">No global check-ins recorded yet.</p>
           ) : (
             <ul className="space-y-3">
-              {checkIns.map((c, i) => (
-                <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="font-mono text-sm text-slate-700">
-                    {c.attendeeAddress.substring(0, 8)}...{c.attendeeAddress.substring(c.attendeeAddress.length - 4)}
+              {onChainAttendees.map((address, i) => (
+                <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                      {i + 1}
+                    </div>
+                    <div className="font-mono text-sm text-slate-700">
+                      {address.substring(0, 12)}...{address.substring(address.length - 8)}
+                    </div>
                   </div>
                   <a
-                    href={`https://stellar.expert/explorer/testnet/tx/${c.txHash}`}
+                    href={`https://stellar.expert/explorer/testnet/account/${address}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-indigo-600 hover:underline mt-2 sm:mt-0"
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline mt-2 sm:mt-0 px-3 py-1 rounded-full bg-indigo-50"
                   >
-                    View TX
+                    View Account ↗
                   </a>
                 </li>
               ))}

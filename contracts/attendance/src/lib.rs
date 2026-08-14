@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -15,6 +15,7 @@ pub struct Event {
 pub enum DataKey {
     Event(u64), // Map<event_id, Event>
     CheckIn(u64, Address), // Map<(event_id, attendee), bool>
+    EventAttendees(u64), // Map<event_id, Vec<Address>>
 }
 
 #[contract]
@@ -44,6 +45,10 @@ impl AttendanceContract {
         };
 
         env.storage().instance().set(&key, &event);
+        
+        // Initialize an empty vector for attendees
+        let attendees: Vec<Address> = Vec::new(&env);
+        env.storage().instance().set(&DataKey::EventAttendees(event_id), &attendees);
     }
 
     pub fn check_in(env: Env, event_id: u64, attendee: Address) {
@@ -73,6 +78,12 @@ impl AttendanceContract {
         event.attendee_count += 1;
         env.storage().instance().set(&event_key, &event);
         env.storage().instance().set(&checkin_key, &true);
+
+        // Update the attendees list
+        let attendees_key = DataKey::EventAttendees(event_id);
+        let mut attendees: Vec<Address> = env.storage().instance().get(&attendees_key).unwrap_or(Vec::new(&env));
+        attendees.push_back(attendee);
+        env.storage().instance().set(&attendees_key, &attendees);
     }
 
     pub fn has_attended(env: Env, event_id: u64, attendee: Address) -> bool {
@@ -96,6 +107,11 @@ impl AttendanceContract {
             .instance()
             .get(&key)
             .unwrap_or_else(|| panic!("Event does not exist"))
+    }
+
+    pub fn get_attendees(env: Env, event_id: u64) -> Vec<Address> {
+        let key = DataKey::EventAttendees(event_id);
+        env.storage().instance().get(&key).unwrap_or(Vec::new(&env))
     }
 }
 
@@ -129,5 +145,9 @@ mod test {
 
         assert_eq!(client.get_attendee_count(&event_id), 1);
         assert_eq!(client.has_attended(&event_id, &attendee), true);
+        
+        let attendees = client.get_attendees(&event_id);
+        assert_eq!(attendees.len(), 1);
+        assert_eq!(attendees.get(0).unwrap(), attendee);
     }
 }

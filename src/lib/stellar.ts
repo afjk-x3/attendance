@@ -107,7 +107,31 @@ export async function getAttendeeCount(eventId: number): Promise<number> {
   }
   return 0;
 }
-
+export async function getGlobalAttendees(eventId: number): Promise<string[]> {
+  try {
+    const contract = getContract();
+    const txBuilder = await getTxBuilder("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF");
+  
+    const tx = txBuilder
+      .addOperation(
+        contract.call("get_attendees", nativeToScVal(eventId, { type: "u64" }))
+      )
+      .setTimeout(30)
+      .build();
+      
+    const simResult = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationSuccess(simResult)) {
+        if(simResult.result?.retval) {
+            const val = scValToNative(simResult.result.retval);
+            // It returns an array of Addresses, which scValToNative parses as strings (public keys)
+            return val as string[];
+        }
+    }
+  } catch(e) {
+      console.error(e);
+  }
+  return [];
+}
 export async function submitTx(preparedTx: any) {
     let response;
     try {
