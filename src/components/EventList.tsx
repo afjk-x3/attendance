@@ -23,7 +23,6 @@ export function EventList() {
     const localEvents = getEvents();
     // eslint-disable-next-line
     setEvents(localEvents);
-    // eslint-disable-next-line
     setNow(Math.floor(Date.now() / 1000));
     setIsLoading(false);
     

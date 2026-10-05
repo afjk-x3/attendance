@@ -219,7 +219,7 @@ export async function submitTx(preparedTx: Transaction | FeeBumpTransaction) {
     let txToSubmit;
     try {
         txToSubmit = TransactionBuilder.fromXDR(response.signedTxXdr, NETWORK_PASSPHRASE);
-    } catch (e) {
+    } catch {
         throw new Error("Failed to parse signed transaction. Please try again.");
     }
 

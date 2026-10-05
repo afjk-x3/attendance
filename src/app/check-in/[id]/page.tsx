@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useWallet } from "@/contexts/WalletContext";
 import { getEvent, saveEvent, saveCheckIn, AppEvent } from "@/lib/storage";
@@ -23,48 +23,55 @@ export default function CheckIn() {
   const urlMaxAttendees = Number(searchParams.get("maxAttendees") || "0");
   
   const { address, connect, isConnecting } = useWallet();
-  const [event, setEvent] = useState<AppEvent | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successTx, setSuccessTx] = useState("");
 
-  useEffect(() => {
+  const storedEvent = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("storage", callback);
+      return () => window.removeEventListener("storage", callback);
+    },
+    () => (typeof id === "string" ? getEvent(id) : null) ?? null,
+    () => null
+  );
+
+  const event: AppEvent | null = useMemo(() => {
+    if (storedEvent) return storedEvent;
     if (typeof id === "string") {
-      const storedEvent = getEvent(id);
-      if (storedEvent) {
-        setEvent(storedEvent);
-      } else {
-        // Construct a partial event from URL params for display and validation
-        setEvent({
-          id,
-          name: urlName,
-          description: "Scanned from QR code",
-          location: urlLocation,
-          date: urlDate,
-          endTimestamp: urlEndTimestamp,
-          maxAttendees: urlMaxAttendees,
-          organizerAddress: "",
-          qrToken: token || "",
-        });
-      }
+      return {
+        id,
+        name: urlName,
+        description: "Scanned from QR code",
+        location: urlLocation,
+        date: urlDate,
+        endTimestamp: urlEndTimestamp,
+        maxAttendees: urlMaxAttendees,
+        organizerAddress: "",
+        qrToken: token || "",
+      };
     }
-  }, [id, urlName, urlDate, urlLocation, urlEndTimestamp, token]);
+    return null;
+  }, [storedEvent, id, urlName, urlDate, urlLocation, urlEndTimestamp, urlMaxAttendees, token]);
 
   const handleCheckIn = async () => {
     if (!address) return;
     if (!event) return;
 
     if (event.qrToken !== token) {
+      setError("Invalid QR token.");
       toast.error("Invalid QR token.");
       return;
     }
     
     // Client side time validation
     if (event.endTimestamp > 0 && Math.floor(Date.now() / 1000) > event.endTimestamp) {
+        setError("This event has already ended.");
         toast.error("This event has already ended.");
         return;
     }
 
+    setError("");
     setIsSubmitting(true);
     
     try {
@@ -119,6 +126,7 @@ export default function CheckIn() {
           errorMessage = "Check-in failed. This usually means you've already checked in, the event is full, or this event was created on an older smart contract and doesn't exist anymore.";
       }
       
+      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);

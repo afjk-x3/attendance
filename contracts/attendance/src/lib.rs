@@ -175,7 +175,7 @@ mod test {
     #[test]
     fn test_create_and_check_in() {
         let env = Env::default();
-        let contract_id = env.register_contract(None, AttendanceContract);
+        let contract_id = env.register(AttendanceContract, ());
         let client = AttendanceContractClient::new(&env, &contract_id);
 
         let organizer = Address::generate(&env);
